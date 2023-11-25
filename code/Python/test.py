@@ -1,86 +1,101 @@
-class Cinema:
-    def __init__(self, cinema_id, cinema_name):
-        self.__cinema_id = cinema_id
-        self.__cinema_name = cinema_name
-        self.__showing_now = []
-        self.__coming_soon = []
-        self.__shown = []
+import numpy as np
 
-    # Methods to update attributes
-    def add_movie_to_coming_soon(self, movie):
-        self.__coming_soon.append(movie)
+# Parameters for the ACO algorithm
+n_ants = 5
+n_cities = 5
+pheromone_evaporation_coefficient = 0.5
+pheromone_intensity = 0.037
+alpha = 1  # Pheromone importance
+beta = 2.5  # Distance priority
+Q = 1  # Constant
 
-    def add_movie_to_showing_now(self, movie):
-        if movie in self.__coming_soon:
-            self.__coming_soon.remove(movie)
-            self.__showing_now.append(movie)
+# Distance matrix for the cities
+distance_matrix = np.array([
+    [0, 18, 22, 45, 55],
+    [18, 0, 20, 38, 50],
+    [22, 20, 0, 25, 42],
+    [45, 38, 25, 0, 18],
+    [55, 50, 42, 18, 0]
+])
 
-    def remove_movie_from_showing_now(self, movie):
-        if movie in self.__showing_now:
-            self.__showing_now.remove(movie)
-            self.__shown.append(movie)
+# Inverse of the distance matrix to represent the heuristic desirability
+heuristic_info = 1 / (distance_matrix + np.diag([np.inf] * n_cities))
 
-    # Methods to display attributes
-    def display_coming_soon(self):
-        return self.__coming_soon
+# Pheromone matrix initialization
+pheromone_matrix = np.ones((n_cities, n_cities)) * pheromone_intensity
 
-    def display_showing_now(self):
-        return self.__showing_now
 
-    def display_shown(self):
-        return self.__shown
+# Function to calculate the next city to visit
+def calculate_transition_probabilities(pheromone_matrix, heuristic_info, alpha, beta, visited):
+    pheromone_influence = pheromone_matrix ** alpha
+    heuristic_influence = heuristic_info ** beta
 
-    # Utility methods for external interaction
-    def get_cinema_id(self):
-        return self.__cinema_id
+    # Create a boolean array from the visited set
+    visited_mask = np.array([city in visited for city in range(n_cities)])
 
-    def get_cinema_name(self):
-        return self.__cinema_name
+    # Set the probabilities for visited cities to 0
+    pheromone_influence[visited_mask, :] = 0
+    heuristic_influence[visited_mask, :] = 0
 
-# Main program to interact with the Cinema class
-def main_menu():
-    cinema = Cinema(1, "Grand Cinema")
+    product_matrix = np.multiply(pheromone_influence, heuristic_influence)
+    row_sums = product_matrix.sum(axis=1, keepdims=True)
+    probability_matrix = np.divide(product_matrix, row_sums, out=np.zeros_like(product_matrix), where=row_sums!=0)
 
-    while True:
-        print("\nCinema Management System")
-        print("1. Add new movie to Coming Soon")
-        print("2. Add new movie to Showing Now")
-        print("3. Remove a movie from Showing Now")
-        print("4. Print Coming Soon list")
-        print("5. Print Showing Now list")
-        print("6. Print Shown list")
-        print("7. Exit")
-        choice = input("Select an option: ")
+    return probability_matrix
 
-        if choice == '1':
-            movie = input("Enter the name of the movie to add to Coming Soon: ")
-            cinema.add_movie_to_coming_soon(movie)
-            print(f"{movie} added to Coming Soon.")
-        elif choice == '2':
-            movie = input("Enter the name of the movie to add to Showing Now: ")
-            cinema.add_movie_to_showing_now(movie)
-            print(f"{movie} added to Showing Now.")
-        elif choice == '3':
-            movie = input("Enter the name of the movie to remove from Showing Now: ")
-            cinema.remove_movie_from_showing_now(movie)
-            print(f"{movie} removed from Showing Now.")
-        elif choice == '4':
-            print("Coming Soon list:")
-            for movie in cinema.display_coming_soon():
-                print(movie)
-        elif choice == '5':
-            print("Showing Now list:")
-            for movie in cinema.display_showing_now():
-                print(movie)
-        elif choice == '6':
-            print("Shown list:")
-            for movie in cinema.display_shown():
-                print(movie)
-        elif choice == '7':
-            with open('output.txt', 'w') as file:
-                file.write("Coming Soon:\n")
-                file.writelines(movie + "\n" for movie in cinema.display_coming_soon())
-                file.write("\nShowing Now:\n")
-                file.writelines(movie + "\n" for movie in cinema.display_showing_now())
-                file.write("\nShown:\n")
-                file.writelines(movie + "\n" for movie in cinema.display_shown())
+# Function to simulate the path of a single ant
+def simulate_ant(pheromone_matrix, heuristic_info, alpha, beta, start_city):
+    path = [start_city]
+    visited = set(path)
+    current_city = start_city
+
+    while len(path) < n_cities:
+        probabilities = calculate_transition_probabilities(
+            pheromone_matrix, heuristic_info, alpha, beta, visited
+        )
+
+        # Normalize the probabilities
+        prob_sum = probabilities[current_city].sum()
+        if prob_sum > 0:
+            normalized_probabilities = probabilities[current_city] / prob_sum
+        else:
+            # Handle case where all cities are visited or probabilities sum to 0
+            normalized_probabilities = np.zeros(n_cities)
+            normalized_probabilities[list(set(range(n_cities)) - visited)] = 1 / (n_cities - len(visited))
+
+        next_city = np.random.choice(n_cities, p=normalized_probabilities)
+        path.append(next_city)
+        visited.add(next_city)
+        current_city = next_city
+
+    # Return to the start city
+    path.append(start_city)
+    return path
+
+
+# Run the ACO algorithm
+for step in range(1):
+    # List to hold the paths of all ants
+    all_paths = []
+    for ant in range(n_ants):
+        start_city = np.random.randint(n_cities)
+        path = simulate_ant(pheromone_matrix, heuristic_info, alpha, beta, start_city)
+        all_paths.append(path)
+        print(f"Ant {ant + 1} path: {path}")
+
+    # Evaluate the paths
+    path_lengths = [sum(distance_matrix[path[i - 1], path[i]] for i in range(1, len(path))) for path in all_paths]
+    print(f"Path lengths: {path_lengths}")
+
+    # Update pheromones
+    for path, length in zip(all_paths, path_lengths):
+        for i in range(1, len(path)):
+            pheromone_matrix[path[i - 1], path[i]] *= (1 - pheromone_evaporation_coefficient)
+            pheromone_matrix[path[i - 1], path[i]] += Q / length
+    print(f"Updated pheromone matrix: \n{pheromone_matrix}")
+
+# Output the best path found
+best_path_length = min(path_lengths)
+best_path = all_paths[path_lengths.index(best_path_length)]
+print(f"Best path: {best_path} with length: {best_path_length}")
+
