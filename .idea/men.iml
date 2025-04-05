@@ -17,7 +17,7 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10 (men)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="C:\ProgramData\anaconda3" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 >>>>>>> 9d65a4704860d1d4751072944ece9719a182a303

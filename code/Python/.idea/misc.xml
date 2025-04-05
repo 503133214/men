@@ -3,9 +3,9 @@
   <component name="Black">
     <option name="executionMode" value="BINARY" />
     <option name="pathToExecutable" value="C:\ProgramData\anaconda3\Scripts\black.exe" />
-    <option name="sdkUUID" value="e7217b1f-f873-4056-a7fe-50e2c8842d75" />
+    <option name="sdkName" value="C:\ProgramData\anaconda3" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="C:\ProgramData\anaconda3" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="snake" project-jdk-type="Python SDK" />
   <component name="PythonCompatibilityInspectionAdvertiser">
     <option name="version" value="3" />
   </component>
